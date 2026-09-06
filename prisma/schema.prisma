@@ -1,0 +1,267 @@
+// Prisma schema for Supabase PostgreSQL
+// Set DATABASE_URL in .env (Supabase → Settings → Database → Connection string URI)
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider  = "postgresql"
+  url       = env("DATABASE_URL")
+  directUrl = env("DIRECT_URL")
+}
+
+model Profile {
+  id                String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  fullName          String   @map("full_name")
+  role              String
+  tagline           String?
+  headline          String?
+  bio               String?
+  aboutTitleLines   String[] @default([]) @map("about_title_lines")
+  statusText        String?  @map("status_text")
+  email             String?
+  location          String?
+  resumeUrl         String?  @map("resume_url")
+  avatarUrl         String?  @map("avatar_url")
+  yearsIt           Int      @default(0) @map("years_it")
+  yearsDev          Int      @default(0) @map("years_dev")
+  yearsPm           Int      @default(0) @map("years_pm")
+  industryFocus     String?  @map("industry_focus")
+  updatedAt         DateTime @default(now()) @updatedAt @map("updated_at") @db.Timestamptz(6)
+
+  @@map("profiles")
+}
+
+model Experience {
+  id               String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  company          String
+  position         String
+  location         String?
+  startDate        DateTime  @map("start_date") @db.Date
+  endDate          DateTime? @map("end_date") @db.Date
+  isCurrent        Boolean   @default(false) @map("is_current")
+  summary          String?
+  responsibilities String[]  @default([])
+  achievements     String[]  @default([])
+  technologies     String[]  @default([])
+  sortOrder        Int       @default(0) @map("sort_order")
+  createdAt        DateTime  @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt        DateTime  @default(now()) @updatedAt @map("updated_at") @db.Timestamptz(6)
+
+  @@index([sortOrder], map: "experiences_sort_idx")
+  @@map("experiences")
+}
+
+model Education {
+  id        String  @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  school    String
+  degree    String
+  field     String?
+  location  String?
+  startYear String  @map("start_year")
+  endYear   String? @map("end_year")
+  note      String?
+  sortOrder Int     @default(0) @map("sort_order")
+
+  @@index([sortOrder], map: "educations_sort_idx")
+  @@map("educations")
+}
+
+model SkillCategory {
+  id        String  @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  name      String
+  slug      String  @unique
+  sortOrder Int     @default(0) @map("sort_order")
+  skills    Skill[]
+
+  @@map("skill_categories")
+}
+
+model Skill {
+  id           String         @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  categoryId   String?        @map("category_id") @db.Uuid
+  name         String
+  proficiency  Int?
+  sortOrder    Int            @default(0) @map("sort_order")
+  category     SkillCategory? @relation(fields: [categoryId], references: [id], onDelete: Cascade)
+
+  @@index([categoryId], map: "skills_category_idx")
+  @@map("skills")
+}
+
+model ProjectCategory {
+  id        String                @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  name      String
+  slug      String                @unique
+  projects  ProjectCategoryLink[]
+
+  @@map("project_categories")
+}
+
+model Project {
+  id               String                @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  title            String
+  slug             String                @unique
+  shortDescription String?               @map("short_description")
+  role             String?
+  industry         String?
+  coverImage       String?               @map("cover_image")
+  externalUrl      String?               @map("external_url")
+  technologies     String[]              @default([])
+  responsibilities String[]              @default([])
+  achievements     String[]              @default([])
+  status           String                @default("draft")
+  featured         Boolean               @default(false)
+  sortOrder        Int                   @default(0) @map("sort_order")
+  publishedAt      DateTime?             @map("published_at") @db.Timestamptz(6)
+  createdAt        DateTime              @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt        DateTime              @default(now()) @updatedAt @map("updated_at") @db.Timestamptz(6)
+  categoryLinks    ProjectCategoryLink[]
+  images           ProjectImage[]
+  caseStudy        CaseStudy?
+
+  @@index([status], map: "projects_status_idx")
+  @@index([slug], map: "projects_slug_idx")
+  @@map("projects")
+}
+
+model ProjectCategoryLink {
+  projectId  String          @map("project_id") @db.Uuid
+  categoryId String          @map("category_id") @db.Uuid
+  project    Project         @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  category   ProjectCategory @relation(fields: [categoryId], references: [id], onDelete: Cascade)
+
+  @@id([projectId, categoryId])
+  @@map("project_category_links")
+}
+
+model ProjectImage {
+  id        String  @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  projectId String  @map("project_id") @db.Uuid
+  url       String
+  alt       String?
+  sortOrder Int     @default(0) @map("sort_order")
+  project   Project @relation(fields: [projectId], references: [id], onDelete: Cascade)
+
+  @@map("project_images")
+}
+
+model CaseStudy {
+  id               String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  projectId        String   @unique @map("project_id") @db.Uuid
+  challenge        String?
+  discovery        String?
+  requirements     String?
+  strategy         String?
+  execution        String?
+  collaboration    String?
+  solution         String?
+  results          String?
+  lessonsLearned   String?  @map("lessons_learned")
+  lifecycleStages  String[] @default(["Idea", "Strategy", "Requirements", "Delivery", "Impact"]) @map("lifecycle_stages")
+  project          Project  @relation(fields: [projectId], references: [id], onDelete: Cascade)
+
+  @@map("case_studies")
+}
+
+model BlogCategory {
+  id    String     @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  name  String
+  slug  String     @unique
+  posts BlogPost[]
+
+  @@map("blog_categories")
+}
+
+model BlogTag {
+  id    String        @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  name  String
+  slug  String        @unique
+  posts BlogPostTag[]
+
+  @@map("blog_tags")
+}
+
+model BlogPost {
+  id             String         @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  title          String
+  slug           String         @unique
+  excerpt        String?
+  content        String?
+  coverImage     String?        @map("cover_image")
+  categoryId     String?        @map("category_id") @db.Uuid
+  readingTime    Int            @default(1) @map("reading_time")
+  status         String         @default("draft")
+  seoTitle       String?        @map("seo_title")
+  seoDescription String?        @map("seo_description")
+  publishedAt    DateTime?      @map("published_at") @db.Timestamptz(6)
+  createdAt      DateTime       @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt      DateTime       @default(now()) @updatedAt @map("updated_at") @db.Timestamptz(6)
+  views          Int            @default(0)
+  category       BlogCategory?  @relation(fields: [categoryId], references: [id], onDelete: SetNull)
+  tags           BlogPostTag[]
+
+  @@index([status], map: "blog_posts_status_idx")
+  @@index([slug], map: "blog_posts_slug_idx")
+  @@map("blog_posts")
+}
+
+model BlogPostTag {
+  postId String   @map("post_id") @db.Uuid
+  tagId  String   @map("tag_id") @db.Uuid
+  post   BlogPost @relation(fields: [postId], references: [id], onDelete: Cascade)
+  tag    BlogTag  @relation(fields: [tagId], references: [id], onDelete: Cascade)
+
+  @@id([postId, tagId])
+  @@map("blog_post_tags")
+}
+
+model ContactMessage {
+  id        String        @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  name      String
+  email     String
+  subject   String
+  message   String
+  status    String        @default("unread")
+  createdAt DateTime      @default(now()) @map("created_at") @db.Timestamptz(6)
+
+  @@index([status], map: "contact_messages_status_idx")
+  @@map("contact_messages")
+}
+
+model Media {
+  id        String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  name      String
+  url       String
+  path      String
+  mimeType  String?  @map("mime_type")
+  size      BigInt   @default(0)
+  alt       String?
+  createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+
+  @@map("media")
+}
+
+model SiteSettings {
+  id              String  @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  siteTitle       String? @map("site_title")
+  siteDescription String? @map("site_description")
+  ogImage         String? @map("og_image")
+  twitterHandle   String? @map("twitter_handle")
+  contactEmail    String? @map("contact_email")
+  linkedinUrl     String? @map("linkedin_url")
+  githubUrl       String? @map("github_url")
+  showAdminLink   Boolean @default(true) @map("show_admin_link")
+
+  @@map("site_settings")
+}
+
+/// Marketing / chrome copy (Admin → Content). Single JSON row.
+model SiteCopyRow {
+  id        String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  data      Json
+  updatedAt DateTime @default(now()) @updatedAt @map("updated_at") @db.Timestamptz(6)
+
+  @@map("site_copy")
+}

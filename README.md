@@ -1,36 +1,49 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# Shwe Yi Mon — Portfolio
 
-## Getting Started
+Premium personal portfolio and admin CMS for **Shwe Yi Mon**, IT Project Manager & Product Owner.
 
-First, run the development server:
+## Stack
+
+- Next.js (App Router) · TypeScript · Tailwind CSS · Framer Motion
+- Supabase (Auth, Postgres, Storage) with a local JSON store for zero-config demos
+
+## Quick start
 
 ```bash
+npm install
 npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+Open [http://localhost:3000](http://localhost:3000).
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+### Admin (local demo)
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+1. Visit [/admin/login](http://localhost:3000/admin/login)
+2. Sign in with `admin@shweyimon.com` / `admin123` (or any non-empty credentials in demo mode)
+3. Manage projects, experience, skills, blog, messages, media, and settings
 
-## Learn More
+Content persists in `.data/store.json` until you connect Supabase.
 
-To learn more about Next.js, take a look at the following resources:
+## Supabase setup
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+1. Create a project at [supabase.com](https://supabase.com)
+2. Copy `.env.example` → `.env.local` and fill credentials
+3. Run `supabase/schema.sql` in the SQL editor
+4. Create a public Storage bucket named `media`
+5. Create an Auth user for admin access
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+Public pages continue to work from the local store until you migrate queries to live Supabase tables.
 
-## Deploy on Vercel
+## Scripts
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+- `npm run dev` — development server
+- `npm run build` — production build
+- `npm run start` — start production server
+- `npm run lint` — ESLint
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+## Structure
+
+- `src/app` — public site + `/admin` portal
+- `src/components` — UI, animations, sections
+- `src/lib/data` — seed content + local store + content API
+- `supabase/schema.sql` — Postgres schema, indexes, RLS
