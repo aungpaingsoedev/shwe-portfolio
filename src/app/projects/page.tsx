@@ -10,6 +10,8 @@ export const metadata: Metadata = {
     "Selected projects spanning project management, product ownership, banking transformation, data, and software delivery.",
 };
 
+export const dynamic = "force-dynamic";
+
 export default async function ProjectsPage() {
   const [projects, profile, copy] = await Promise.all([
     getPublishedProjects(),

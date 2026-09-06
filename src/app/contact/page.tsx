@@ -11,6 +11,8 @@ export const metadata: Metadata = {
     "Get in touch with Shwe Yi Mon for project leadership, product ownership, and digital transformation conversations.",
 };
 
+export const dynamic = "force-dynamic";
+
 export default async function ContactPage() {
   const [profile, settings, copy] = await Promise.all([
     getProfile(),

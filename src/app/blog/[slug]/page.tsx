@@ -26,10 +26,7 @@ type PageProps = {
   params: Promise<{ slug: string }>;
 };
 
-export async function generateStaticParams() {
-  const posts = await getPublishedPosts();
-  return posts.map((p) => ({ slug: p.slug }));
-}
+export const dynamic = "force-dynamic";
 
 export async function generateMetadata({
   params,
@@ -62,12 +59,10 @@ export default async function BlogPostPage({ params }: PageProps) {
   const post = await getPostBySlug(slug);
   if (!post) notFound();
 
-  const [profile, related, allPosts, copy] = await Promise.all([
-    getProfile(),
-    getRelatedPosts(post),
-    getPublishedPosts(),
-    getSiteCopy(),
-  ]);
+  const profile = await getProfile();
+  const related = await getRelatedPosts(post);
+  const allPosts = await getPublishedPosts();
+  const copy = await getSiteCopy();
 
   const index = allPosts.findIndex((p) => p.id === post.id);
   const prev = index < allPosts.length - 1 ? allPosts[index + 1] : null;

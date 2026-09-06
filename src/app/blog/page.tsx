@@ -10,6 +10,8 @@ export const metadata: Metadata = {
     "Thinking Beyond Delivery — essays on project management, product ownership, leadership, and digital transformation.",
 };
 
+export const dynamic = "force-dynamic";
+
 export default async function BlogPage() {
   const [posts, profile, copy] = await Promise.all([
     getPublishedPosts(),

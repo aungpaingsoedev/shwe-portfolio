@@ -20,10 +20,8 @@ type PageProps = {
   params: Promise<{ slug: string }>;
 };
 
-export async function generateStaticParams() {
-  const projects = await getPublishedProjects();
-  return projects.map((p) => ({ slug: p.slug }));
-}
+// Render on demand — avoids exhausting Supabase pool during `next build` SSG.
+export const dynamic = "force-dynamic";
 
 export async function generateMetadata({
   params,
@@ -46,14 +44,13 @@ export async function generateMetadata({
 
 export default async function ProjectCaseStudyPage({ params }: PageProps) {
   const { slug } = await params;
-  const [project, profile, allProjects, copy] = await Promise.all([
-    getProjectBySlug(slug),
-    getProfile(),
-    getPublishedProjects(),
-    getSiteCopy(),
-  ]);
-
+  // Sequential queries keep the Prisma pool (connection_limit=1) from timing out
+  const project = await getProjectBySlug(slug);
   if (!project) notFound();
+
+  const profile = await getProfile();
+  const allProjects = await getPublishedProjects();
+  const copy = await getSiteCopy();
 
   const index = allProjects.findIndex((p) => p.id === project.id);
   const prev = index > 0 ? allProjects[index - 1] : null;

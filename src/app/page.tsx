@@ -20,6 +20,8 @@ import { Reveal } from "@/components/animations/reveal";
 import Link from "next/link";
 import { InkArrow } from "@/components/ui/ink-arrow";
 
+export const dynamic = "force-dynamic";
+
 export default async function HomePage() {
   const [profile, experiences, educations, projects, skillsData, posts, copy] =
     await Promise.all([
