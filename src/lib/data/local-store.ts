@@ -46,6 +46,9 @@ export interface LocalStore {
 const DATA_DIR = path.join(process.cwd(), ".data");
 const STORE_PATH = path.join(DATA_DIR, "store.json");
 
+/** In-memory fallback for serverless (Vercel) where the filesystem is read-only. */
+let memoryStore: LocalStore | null = null;
+
 function defaultStore(): LocalStore {
   return {
     profile: structuredClone(profile),
@@ -111,21 +114,29 @@ function withDefaults(parsed: Partial<LocalStore>): LocalStore {
 }
 
 export async function readStore(): Promise<LocalStore> {
+  if (memoryStore) return memoryStore;
+
   try {
     const raw = await fs.readFile(STORE_PATH, "utf8");
     const store = withDefaults(JSON.parse(raw) as Partial<LocalStore>);
-    await writeStore(store);
+    memoryStore = store;
     return store;
   } catch {
     const store = defaultStore();
+    memoryStore = store;
     await writeStore(store);
     return store;
   }
 }
 
 export async function writeStore(store: LocalStore): Promise<void> {
-  await fs.mkdir(DATA_DIR, { recursive: true });
-  await fs.writeFile(STORE_PATH, JSON.stringify(store, null, 2), "utf8");
+  memoryStore = store;
+  try {
+    await fs.mkdir(DATA_DIR, { recursive: true });
+    await fs.writeFile(STORE_PATH, JSON.stringify(store, null, 2), "utf8");
+  } catch {
+    // Ignore — Vercel / serverless may not allow writing to disk.
+  }
 }
 
 export async function updateStore(

@@ -4,14 +4,24 @@ import { isSupabaseConfigured } from "@/lib/utils";
 
 export async function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl;
+  const isAdminLogin = pathname.startsWith("/admin/login");
   const isAdminProtected =
-    pathname.startsWith("/admin") && !pathname.startsWith("/admin/login");
+    pathname.startsWith("/admin") && !isAdminLogin;
 
   if (isSupabaseConfigured()) {
-    return updateSession(request);
+    try {
+      return await updateSession(request);
+    } catch (error) {
+      console.error("[middleware] Supabase session failed:", error);
+      if (isAdminProtected) {
+        const url = request.nextUrl.clone();
+        url.pathname = "/admin/login";
+        return NextResponse.redirect(url);
+      }
+      return NextResponse.next();
+    }
   }
 
-  // Local demo auth via httpOnly cookie
   if (isAdminProtected) {
     const authed = request.cookies.get("sym_admin_session")?.value === "1";
     if (!authed) {
@@ -25,8 +35,5 @@ export async function middleware(request: NextRequest) {
 }
 
 export const config = {
-  matcher: [
-    "/admin/:path*",
-    "/((?!_next/static|_next/image|favicon.ico|.*\\.(?:svg|png|jpg|jpeg|gif|webp)$).*)",
-  ],
+  matcher: ["/admin/:path*"],
 };

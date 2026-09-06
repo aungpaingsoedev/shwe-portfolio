@@ -24,189 +24,277 @@ function useDb() {
   return isDatabaseConfigured();
 }
 
+async function withFallback<T>(
+  dbFn: () => Promise<T>,
+  localFn: () => Promise<T>,
+): Promise<T> {
+  if (!useDb()) return localFn();
+  try {
+    return await dbFn();
+  } catch (error) {
+    console.error("[content] database unavailable, using seed fallback:", error);
+    return localFn();
+  }
+}
+
 export async function getProfile(): Promise<Profile> {
-  if (useDb()) return db.dbGetProfile();
-  const store = await readStore();
-  return store.profile;
+  return withFallback(
+    () => db.dbGetProfile(),
+    async () => (await readStore()).profile,
+  );
 }
 
 export async function getExperiences(): Promise<Experience[]> {
-  if (useDb()) return db.dbGetExperiences();
-  const store = await readStore();
-  return [...store.experiences].sort((a, b) => a.sort_order - b.sort_order);
+  return withFallback(
+    () => db.dbGetExperiences(),
+    async () => {
+      const store = await readStore();
+      return [...store.experiences].sort((a, b) => a.sort_order - b.sort_order);
+    },
+  );
 }
 
 export async function getEducations(): Promise<Education[]> {
-  if (useDb()) return db.dbGetEducations();
-  const store = await readStore();
-  return [...(store.educations ?? [])].sort((a, b) => a.sort_order - b.sort_order);
+  return withFallback(
+    () => db.dbGetEducations(),
+    async () => {
+      const store = await readStore();
+      return [...(store.educations ?? [])].sort(
+        (a, b) => a.sort_order - b.sort_order,
+      );
+    },
+  );
 }
 
 export async function getPublishedProjects(filter?: string): Promise<Project[]> {
-  if (useDb()) return db.dbGetPublishedProjects(filter);
-  const store = await readStore();
-  let list = store.projects.filter((p) => p.status === "published");
-  if (filter && filter !== "All") {
-    list = list.filter((p) => p.categories.includes(filter));
-  }
-  return list.sort((a, b) => a.sort_order - b.sort_order);
+  return withFallback(
+    () => db.dbGetPublishedProjects(filter),
+    async () => {
+      const store = await readStore();
+      let list = store.projects.filter((p) => p.status === "published");
+      if (filter && filter !== "All") {
+        list = list.filter((p) => p.categories.includes(filter));
+      }
+      return list.sort((a, b) => a.sort_order - b.sort_order);
+    },
+  );
 }
 
 export async function getAllProjects(): Promise<Project[]> {
-  if (useDb()) return db.dbGetAllProjects();
-  const store = await readStore();
-  return [...store.projects].sort((a, b) => a.sort_order - b.sort_order);
+  return withFallback(
+    () => db.dbGetAllProjects(),
+    async () => {
+      const store = await readStore();
+      return [...store.projects].sort((a, b) => a.sort_order - b.sort_order);
+    },
+  );
 }
 
 export async function getProjectBySlug(slug: string): Promise<Project | null> {
-  if (useDb()) return db.dbGetProjectBySlug(slug);
-  const store = await readStore();
-  return store.projects.find((p) => p.slug === slug && p.status === "published") ?? null;
+  return withFallback(
+    () => db.dbGetProjectBySlug(slug),
+    async () => {
+      const store = await readStore();
+      return (
+        store.projects.find((p) => p.slug === slug && p.status === "published") ??
+        null
+      );
+    },
+  );
 }
 
 export async function getProjectById(id: string): Promise<Project | null> {
-  if (useDb()) return db.dbGetProjectById(id);
-  const store = await readStore();
-  return store.projects.find((p) => p.id === id) ?? null;
+  return withFallback(
+    () => db.dbGetProjectById(id),
+    async () => {
+      const store = await readStore();
+      return store.projects.find((p) => p.id === id) ?? null;
+    },
+  );
 }
 
 export async function getPublishedPosts(): Promise<BlogPost[]> {
-  if (useDb()) return db.dbGetPublishedPosts();
-  const store = await readStore();
-  return store.blogPosts
-    .filter((p) => p.status === "published")
-    .sort(
-      (a, b) =>
-        new Date(b.published_at || b.created_at).getTime() -
-        new Date(a.published_at || a.created_at).getTime(),
-    );
+  return withFallback(
+    () => db.dbGetPublishedPosts(),
+    async () => {
+      const store = await readStore();
+      return store.blogPosts
+        .filter((p) => p.status === "published")
+        .sort(
+          (a, b) =>
+            new Date(b.published_at || b.created_at).getTime() -
+            new Date(a.published_at || a.created_at).getTime(),
+        );
+    },
+  );
 }
 
 export async function getAllPosts(): Promise<BlogPost[]> {
-  if (useDb()) return db.dbGetAllPosts();
-  const store = await readStore();
-  return [...store.blogPosts].sort(
-    (a, b) =>
-      new Date(b.updated_at).getTime() - new Date(a.updated_at).getTime(),
+  return withFallback(
+    () => db.dbGetAllPosts(),
+    async () => {
+      const store = await readStore();
+      return [...store.blogPosts].sort(
+        (a, b) =>
+          new Date(b.updated_at).getTime() - new Date(a.updated_at).getTime(),
+      );
+    },
   );
 }
 
 export async function getBlogCategories(): Promise<BlogCategory[]> {
-  if (useDb()) return db.dbGetBlogCategories();
-  const store = await readStore();
-  return [...store.blogCategories];
+  return withFallback(
+    () => db.dbGetBlogCategories(),
+    async () => [...(await readStore()).blogCategories],
+  );
 }
 
 export async function getPostBySlug(slug: string): Promise<BlogPost | null> {
-  if (useDb()) return db.dbGetPostBySlug(slug);
-  const store = await readStore();
-  return (
-    store.blogPosts.find((p) => p.slug === slug && p.status === "published") ??
-    null
+  return withFallback(
+    () => db.dbGetPostBySlug(slug),
+    async () => {
+      const store = await readStore();
+      return (
+        store.blogPosts.find((p) => p.slug === slug && p.status === "published") ??
+        null
+      );
+    },
   );
 }
 
 export async function getPostById(id: string): Promise<BlogPost | null> {
-  if (useDb()) return db.dbGetPostById(id);
-  const store = await readStore();
-  return store.blogPosts.find((p) => p.id === id) ?? null;
+  return withFallback(
+    () => db.dbGetPostById(id),
+    async () => {
+      const store = await readStore();
+      return store.blogPosts.find((p) => p.id === id) ?? null;
+    },
+  );
 }
 
 export async function getRelatedPosts(
   post: BlogPost,
   limit = 3,
 ): Promise<BlogPost[]> {
-  if (useDb()) return db.dbGetRelatedPosts(post, limit);
-  const posts = await getPublishedPosts();
-  return posts
-    .filter((p) => p.id !== post.id)
-    .filter(
-      (p) =>
-        p.category_id === post.category_id ||
-        p.tags.some((t) => post.tags.includes(t)),
-    )
-    .slice(0, limit);
+  return withFallback(
+    () => db.dbGetRelatedPosts(post, limit),
+    async () => {
+      const posts = await getPublishedPosts();
+      return posts
+        .filter((p) => p.id !== post.id)
+        .filter(
+          (p) =>
+            p.category_id === post.category_id ||
+            p.tags.some((t) => post.tags.includes(t)),
+        )
+        .slice(0, limit);
+    },
+  );
 }
 
 export async function getSkills(): Promise<{
   categories: SkillCategory[];
   skills: Skill[];
 }> {
-  if (useDb()) return db.dbGetSkills();
-  const store = await readStore();
-  return {
-    categories: [...store.skillCategories].sort(
-      (a, b) => a.sort_order - b.sort_order,
-    ),
-    skills: [...store.skills].sort((a, b) => a.sort_order - b.sort_order),
-  };
+  return withFallback(
+    () => db.dbGetSkills(),
+    async () => {
+      const store = await readStore();
+      return {
+        categories: [...store.skillCategories].sort(
+          (a, b) => a.sort_order - b.sort_order,
+        ),
+        skills: [...store.skills].sort((a, b) => a.sort_order - b.sort_order),
+      };
+    },
+  );
 }
 
 export async function getMessages(): Promise<ContactMessage[]> {
-  if (useDb()) return db.dbGetMessages();
-  const store = await readStore();
-  return [...store.contactMessages].sort(
-    (a, b) =>
-      new Date(b.created_at).getTime() - new Date(a.created_at).getTime(),
+  return withFallback(
+    () => db.dbGetMessages(),
+    async () => {
+      const store = await readStore();
+      return [...store.contactMessages].sort(
+        (a, b) =>
+          new Date(b.created_at).getTime() - new Date(a.created_at).getTime(),
+      );
+    },
   );
 }
 
 export async function getMedia(): Promise<MediaItem[]> {
-  if (useDb()) return db.dbGetMedia();
-  const store = await readStore();
-  return [...store.mediaItems].sort(
-    (a, b) =>
-      new Date(b.created_at).getTime() - new Date(a.created_at).getTime(),
+  return withFallback(
+    () => db.dbGetMedia(),
+    async () => {
+      const store = await readStore();
+      return [...store.mediaItems].sort(
+        (a, b) =>
+          new Date(b.created_at).getTime() - new Date(a.created_at).getTime(),
+      );
+    },
   );
 }
 
 export async function getSettings(): Promise<SiteSettings> {
-  if (useDb()) return db.dbGetSettings();
-  const store = await readStore();
-  return store.siteSettings;
+  return withFallback(
+    () => db.dbGetSettings(),
+    async () => (await readStore()).siteSettings,
+  );
 }
 
 export async function getSiteCopy(): Promise<SiteCopy> {
-  if (useDb()) return db.dbGetSiteCopy();
-  const store = await readStore();
-  return store.siteCopy;
+  return withFallback(
+    () => db.dbGetSiteCopy(),
+    async () => (await readStore()).siteCopy,
+  );
 }
 
 export async function getDashboardStats(): Promise<DashboardStats> {
-  if (useDb()) return db.dbGetDashboardStats();
-  const store = await readStore();
-  const publishedProjects = store.projects.filter((p) => p.status === "published");
-  const publishedPosts = store.blogPosts.filter((p) => p.status === "published");
-  return {
-    totalProjects: store.projects.length,
-    publishedProjects: publishedProjects.length,
-    totalPosts: store.blogPosts.length,
-    publishedPosts: publishedPosts.length,
-    contactMessages: store.contactMessages.length,
-    unreadMessages: store.contactMessages.filter((m) => m.status === "unread")
-      .length,
-    totalViews: store.blogPosts.reduce((sum, p) => sum + (p.views || 0), 0),
-    mediaCount: store.mediaItems.length,
-  };
+  return withFallback(
+    () => db.dbGetDashboardStats(),
+    async () => {
+      const store = await readStore();
+      const publishedProjects = store.projects.filter(
+        (p) => p.status === "published",
+      );
+      const publishedPosts = store.blogPosts.filter(
+        (p) => p.status === "published",
+      );
+      return {
+        totalProjects: store.projects.length,
+        publishedProjects: publishedProjects.length,
+        totalPosts: store.blogPosts.length,
+        publishedPosts: publishedPosts.length,
+        contactMessages: store.contactMessages.length,
+        unreadMessages: store.contactMessages.filter((m) => m.status === "unread")
+          .length,
+        totalViews: store.blogPosts.reduce((sum, p) => sum + (p.views || 0), 0),
+        mediaCount: store.mediaItems.length,
+      };
+    },
+  );
 }
 
 export async function createContactMessage(
   input: Omit<ContactMessage, "id" | "status" | "created_at">,
 ): Promise<ContactMessage> {
-  if (useDb()) return db.dbCreateContactMessage(input);
-  const message: ContactMessage = {
-    ...input,
-    id: `msg-${crypto.randomUUID()}`,
-    status: "unread",
-    created_at: new Date().toISOString(),
-  };
-
-  await updateStore((store) => {
-    store.contactMessages.unshift(message);
-    return store;
-  });
-
-  return message;
+  return withFallback(
+    () => db.dbCreateContactMessage(input),
+    async () => {
+      const message: ContactMessage = {
+        ...input,
+        id: `msg-${crypto.randomUUID()}`,
+        status: "unread",
+        created_at: new Date().toISOString(),
+      };
+      await updateStore((store) => {
+        store.contactMessages.unshift(message);
+        return store;
+      });
+      return message;
+    },
+  );
 }
 
 export async function saveProject(project: Project): Promise<Project> {

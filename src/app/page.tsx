@@ -23,16 +23,14 @@ import { InkArrow } from "@/components/ui/ink-arrow";
 export const dynamic = "force-dynamic";
 
 export default async function HomePage() {
-  const [profile, experiences, educations, projects, skillsData, posts, copy] =
-    await Promise.all([
-      getProfile(),
-      getExperiences(),
-      getEducations(),
-      getPublishedProjects(),
-      getSkills(),
-      getPublishedPosts(),
-      getSiteCopy(),
-    ]);
+  // Sequential fetches keep Prisma connection_limit=1 from timing out on Vercel.
+  const profile = await getProfile();
+  const experiences = await getExperiences();
+  const educations = await getEducations();
+  const projects = await getPublishedProjects();
+  const skillsData = await getSkills();
+  const posts = await getPublishedPosts();
+  const copy = await getSiteCopy();
 
   const featuredProjects = projects.slice(0, 4);
   const latestPosts = posts.slice(0, 3);
